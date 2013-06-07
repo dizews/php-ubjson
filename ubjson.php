@@ -6,24 +6,24 @@ class UBJSON {
 	const TYPE_OBJECT = 1; 
 
 	//internal constants
-	const EOF		= 0;
-	const DATA		= 1;
+	const EOF	= 0;
+	const DATA	= 1;
 
-	const NOOP		= 'N';
-	const NULL		= 'Z';
-	const FALSE		= 'F';
-	const TRUE		= 'T';
-	const INT8		= 'i';
-	const UINT8		= 'U';
-	const INT16		= 'I';
-	const INT32		= 'l';
-	const INT64		= 'L';
-	const FLOAT		= 'd';
-	const DOUBLE	= 'D';
-	const CHAR		= 'C';
-	const STRING	= 'S';
+	const NOOP   = 'N';
+	const NULL   = 'Z';
+	const FALSE  = 'F';
+	const TRUE   = 'T';
+	const INT8   = 'i';
+	const UINT8  = 'U';
+	const INT16  = 'I';
+	const INT32  = 'l';
+	const INT64  = 'L';
+	const FLOAT  = 'd';
+	const DOUBLE = 'D';
+	const CHAR   = 'C';
+	const STRING = 'S';
 	const HIGH_PRECISION = 'H';
-	const ARRAY_OPEN 	 = '[';
+	const ARRAY_OPEN	 = '[';
 	const ARRAY_CLOSE	 = ']';
 	const OBJECT_OPEN	 = '{';
 	const OBJECT_CLOSE	 = '}';
@@ -42,43 +42,49 @@ class UBJSON {
 	protected function __construct($source) {
 		$this->_source = $source;
 		if (is_string($this->_source)) {
-        	$this->_sourceLength = strlen($this->_source);
+			$this->_sourceLength = strlen($this->_source);
 		}
 	}
 	
-	//encoder
+	/**
+	 * encode data into ubson format
+	 * @param mixed $value
+	 * @return string
+	 */
 	public static function encode($value) {
 		$ubjson = new self($value);
 		
 		return $ubjson->_encodeValue($value);
 	}
 	
+	/**
+	 * @param mixed $value
+	 * @return string
+	 */
 	protected function _encodeValue(&$value) {
 		
+		$result = null;
 		if (is_object($value)) {
-			return $this->_encodeObject($value);
+			$result = $this->_encodeObject($value);
 		} elseif (is_array($value)) {
-			return $this->_encodeArray($value);
-		}
-		return	$this->_encodeData($value);
-	}
-	
-	protected function _encodeData(&$value) {
-		$result = 'null';
-
-		if (is_int($value) || is_float($value)) {
-        	$result = $this->_encodeNumeric($value);
-        } elseif (is_string($value)) {
-            $result = $this->_encodeString($value);
-        } elseif ($value === null) {
+			$result = $this->_encodeArray($value);
+		} elseif (is_int($value) || is_float($value)) {
+			$result = $this->_encodeNumeric($value);
+		} elseif (is_string($value)) {
+			$result = $this->_encodeString($value);
+		} elseif ($value === null) {
 			$result = self::NULL;
 		} elseif (is_bool($value)) {
-            $result = $value ? self::TRUE : self::FALSE;
-        }
-
-        return $result;
+			$result = $value ? self::TRUE : self::FALSE;
+		}
+		
+		return $result;
 	}
 	
+	/**
+	 * @param array $array
+	 * @return string
+	 */
 	protected function _encodeArray(&$array) {
 		
 		if (!empty($array) && (array_keys($array) !== range(0, count($array) - 1))) {
@@ -87,8 +93,8 @@ class UBJSON {
 			foreach ($array as $key => $value) {
 				$key = (string)$key;
 				$result .= $this->_encodeString($key).$this->_encodeValue($value);
-            }
-            $result .= self::OBJECT_CLOSE;
+			}
+			$result .= self::OBJECT_CLOSE;
 		} else {
 			// indexed array
 			$result = self::ARRAY_OPEN;
@@ -102,6 +108,10 @@ class UBJSON {
 		return $result;
 	}
 	
+	/**
+	 * @param stdClass $object
+	 * @return string
+	 */
 	protected function _encodeObject(&$object) {
 		
 		if ($object instanceof Iterator) {
@@ -113,6 +123,10 @@ class UBJSON {
 		return $this->_encodeArray($propCollection);
 	}
 	
+	/**
+	 * @param string $string
+	 * @return string
+	 */
 	protected function _encodeString(&$string) {
 		$result = null;
 		
@@ -130,6 +144,10 @@ class UBJSON {
 		return $result;
 	}
 	
+	/**
+	 * @param int|float $numeric
+	 * @return string
+	 */
 	protected function _encodeNumeric(&$numeric) {
 		$result = null;
 		
@@ -152,20 +170,30 @@ class UBJSON {
 		return $result;
 	}
 	
-	//decoder
+	/**
+	 * decode ubjson format
+	 * 
+	 * @param string $source
+	 * @param int $decodeType
+	 * @return mixed
+	 */
 	public static function decode($source, $decodeType = self::TYPE_ARRAY) {
 		$ubjson = new self($source);
-		$ubjson->setDecodeValue($decodeType);
+		$ubjson->setDecodeType($decodeType);
 		$ubjson->_getNextToken();
 		
 		return $ubjson->_decodeValue();
 	}
 	
-	public function setDecodeValue($decodeType) {
+	public function setDecodeType($decodeType = self::TYPE_ARRAY) {
 		$this->_decodeType = $decodeType;
 	}
 	
-	
+	/**
+	 * decode string
+	 * 
+	 * @return mixed
+	 */
 	protected function _decodeValue() {
 		$result = null;
 		
@@ -184,7 +212,12 @@ class UBJSON {
 		
 		return $result;
 	}
-		
+
+	/**
+	 * get ubjson token and extract data
+	 * 
+	 * @return string
+	 */
 	protected function _getNextToken() {
 		
 		$this->_token = self::EOF;
@@ -281,6 +314,11 @@ class UBJSON {
 		return $this->_token;
 	}
 	
+	/**
+	 * decode combined data from source
+	 * 
+	 * @return stdClass|array
+	 */
 	protected function _decodeStruct() {
 		
 		$key = 0;
@@ -323,8 +361,13 @@ class UBJSON {
 		return $result;
 	}
 	
-	
-	protected function _read($bytes) {
+	/**
+	 * read N bytes from source string
+	 * 
+	 * @param int $bytes
+	 * @return mixed
+	 */
+	protected function _read($bytes = 1) {
 		$result = substr($this->_source, $this->_offset, $bytes);
 		$this->_offset += $bytes;
 		
