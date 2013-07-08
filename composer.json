@@ -1,0 +1,12 @@
+{
+    "authors": [
+        {
+            "name": "Vladimir Zbrailov",
+            "email": "dizews@gmail.com"
+        }
+    ],
+    "name": "dizews/ubjson",
+    "require": {
+        "php": " 5.3.0"
+    }
+}
