@@ -37,6 +37,9 @@ class UBJSON {
 	
 	protected $_token = self::EOF;
 	protected $_tokenValue = null;
+	
+	protected $_throwException = true;
+	protected static $_lastErrorMessage = null;
 
 	
 	protected function __construct($source) {
@@ -177,10 +180,12 @@ class UBJSON {
 	 * @param int $decodeType
 	 * @return mixed
 	 */
-	public static function decode($source, $decodeType = self::TYPE_ARRAY) {
+	public static function decode($source, $decodeType = self::TYPE_ARRAY, $throwException = true) {
 		$ubjson = new self($source);
 		$ubjson->setDecodeType($decodeType);
 		$ubjson->_getNextToken();
+		$ubjson->setThrowException($throwException);
+		$ubjson->cleanLastErrorMessage();
 		
 		return $ubjson->_decodeValue();
 	}
@@ -234,22 +239,22 @@ class UBJSON {
 		
 		switch ($token) {
 			case self::INT8:
-				list(, $this->_tokenValue) = unpack('c', $this->_read(1));
+				$this->_tokenValue = $this->_unpack('c', 1);
 				break;
 			case self::UINT8:
-				list(, $this->_tokenValue) = unpack('C', $this->_read(1));
+				$this->_tokenValue = $this->_unpack('C', 1);
 				break;
 			case self::INT16:
-				list(, $this->_tokenValue) = unpack('s', $this->_read(2));
+				$this->_tokenValue = $this->_unpack('s', 2);
 				break;
 			case self::INT32:
-				list(, $this->_tokenValue) = unpack('l', $this->_read(4));
+				$this->_tokenValue = $this->_unpack('l', 4);
 				break;
 // 			case self::INT64:
 // 				//unsupported
 //				break;
 			case self::FLOAT:
-				list(, $this->_tokenValue) = unpack('f', $this->_read(4));
+				$this->_tokenValue = $this->_unpack('f', 4);
 				break;
 // 			case self::DOUBLE:
 // 				//unsupported
@@ -275,16 +280,16 @@ class UBJSON {
 				$len = 0;
 				switch ($this->_source{$this->_offset-1}) {
 					case self::INT8:
-						list(, $len) = unpack('c', $this->_read(1));
+						$len = $this->_unpack('c', 1);
 						break;
 					case self::UINT8:
-						list(, $len) = unpack('C', $this->_read(1));
+						$len = $this->_unpack('C', 1);
 						break;
 					case self::INT16:
-						list(, $len) = unpack('s', $this->_read(2));
+						$len = $this->_unpack('s', 2);
 						break;
 					case self::INT32:
-						list(, $len) = unpack('l', $this->_read(4));
+						$len = $this->_unpack('l', 4);
 						break;
 					default:
 						//unsupported
@@ -361,6 +366,19 @@ class UBJSON {
 		return $result;
 	}
 	
+	
+	public function setThrowException($throw) {
+		$this->_throwException = $throw;
+	}
+	
+	public static function getLastErrorMessage() {
+		return self::$_lastErrorMessage;
+	}
+	
+	public static function cleanLastErrorMessage() {
+		self::$_lastErrorMessage = null;
+	}
+	
 	/**
 	 * read N bytes from source string
 	 * 
@@ -373,5 +391,26 @@ class UBJSON {
 		
 		return $result;
 	}
+	
+	protected function _unpack($flag, $bytes) {
+		$value = null;
+		
+		if ($this->_sourceLength < $this->_offset + $bytes) {
+			$exception = new UbsonDecodeException('invalid ubsjon data');
+			if ($this->_throwException) {
+				throw $exception;
+			}
+			self::$_lastErrorMessage = $exception->getMessage();
+		} else {
+			list(, $value) = unpack($flag, $this->_read($bytes));
+		}
+		
+		return $value;
+	}
+}
+
+
+class UbsonDecodeException extends Exception {
+	
 }
 
