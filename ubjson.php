@@ -3,7 +3,7 @@
 class UBJSON {
 
 	const TYPE_ARRAY  = 0;
-	const TYPE_OBJECT = 1; 
+	const TYPE_OBJECT = 1;
 
 	//internal constants
 	const EOF	= 0;
