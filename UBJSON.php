@@ -396,7 +396,7 @@ class UBJSON {
 		$value = null;
 		
 		if ($this->_sourceLength < $this->_offset + $bytes) {
-			$exception = new UbsonDecodeException('invalid ubsjon data');
+			$exception = new UbjsonDecodeException('invalid ubjson data');
 			if ($this->_throwException) {
 				throw $exception;
 			}
@@ -410,7 +410,7 @@ class UBJSON {
 }
 
 
-class UbsonDecodeException extends Exception {
+class UbjsonDecodeException extends Exception {
 	
 }
 
