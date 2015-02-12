@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * Informs if the system's CPU uses the little endian byte order
+ * 
+ * @var bool
+ */
+define('SYS_LITTLE_ENDIAN', pack('S', 0xFF) === pack('v', 0xFF));
+
 class UBJSON {
 
 	const TYPE_ARRAY  = 0;
@@ -151,25 +158,37 @@ class UBJSON {
 	 * @param int|float $numeric
 	 * @return string
 	 */
-	protected function _encodeNumeric(&$numeric) {
-		$result = null;
+	protected function _encodeNumeric($numeric) {
+		$result = $pack = null;
+                $swap   = SYS_LITTLE_ENDIAN;
 		
 		if (is_int($numeric)) {
 			if (256 > $numeric) {
+                            $swap = false;
 				if (0 < $numeric) {
-					$result = self::UINT8.pack('C', $numeric);
+					$result = self::UINT8;
+                                        $pack   = 'C';
 				} else {
-					$result = self::INT8.pack('c', $numeric);
+					$result = self::INT8;
+                                        $pack   = 'c';
 				}
 			} elseif (32768 > $numeric) {
-				$result = self::INT16.pack('s', $numeric);
+				$result = self::INT16;
+                                $pack   = 's';
 			} elseif (2147483648 > $numeric) {
-				$result = self::INT32.pack('l', $numeric);
+				$result = self::INT32;
+                                $pack   = 'l';
 			}
 		} elseif (is_float($numeric)) {
-			$result = self::FLOAT.pack('f', $numeric);
+			$result = self::FLOAT;
+                        $pack   = 'f';
 		}
-		
+                
+                $packed = pack($pack, $numeric);
+                if ($swap) {
+                    $packed = strrev($packed);
+                }
+		$result .= $packed;
 		return $result;
 	}
 	
@@ -402,7 +421,20 @@ class UBJSON {
 			}
 			self::$_lastErrorMessage = $exception->getMessage();
 		} else {
-			list(, $value) = unpack($flag, $this->_read($bytes));
+                        $packed = $this->_read($bytes);
+                        switch ($flag) {
+                            case 's':
+                            case 'l':
+                            case 'f':
+                                $swap = SYS_LITTLE_ENDIAN;
+                                break;
+                            default:
+                                $swap = false;
+                        }
+                        if ($swap) {
+                            $packed = strrev($packed);
+                        }
+			list(, $value) = unpack($flag, $packed);
 		}
 		
 		return $value;
