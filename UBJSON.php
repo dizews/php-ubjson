@@ -362,8 +362,6 @@ class UBJSON {
 			if ($tokenOpen == self::OBJECT_OPEN) {
 				$key = $this->_tokenValue;
 				$tokenCurrent = $this->_getNextToken();
-			} else {
-				++$key;
 			}
 
 			$value = $this->_decodeValue();
@@ -377,6 +375,10 @@ class UBJSON {
 			
 			if (in_array($tokenCurrent, $structEnd)) {
 				break;
+			}
+
+			if ($tokenOpen != self::OBJECT_OPEN) {
+				++$key;
 			}
 		}
 		
